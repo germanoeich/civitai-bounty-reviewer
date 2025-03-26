@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import BucketSelector from './BucketSelector';
 import FullscreenViewer from './FullscreenViewer';
+import ExtractorScript from '../../ExtractorScript';
 
 const ReviewView = ({
   fileUploaded,
@@ -28,7 +29,7 @@ const ReviewView = ({
   const isBucketFull = (bucketId) => {
     const bucket = buckets.find(b => b.id === bucketId);
     if (!bucket || bucket.limit === null) return false;
-    
+
     const imagesInBucket = allImages.filter(img => bucketAssignments[img.id] === bucketId).length;
     return imagesInBucket >= bucket.limit;
   };
@@ -46,11 +47,11 @@ const ReviewView = ({
           isBucketFull={isBucketFull}
         />
       )}
-      
+
       <div className="max-w-4xl mx-auto bg-white p-8 rounded-lg shadow-md">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4">
           <h1 className="text-2xl font-bold">Civitai Bounty Reviewer</h1>
-          
+
           {!fileUploaded ? (
             <div className="flex flex-col space-y-2">
               <label className="bg-blue-600 text-white px-3 py-2 rounded hover:bg-blue-700 text-center cursor-pointer">
@@ -97,7 +98,7 @@ const ReviewView = ({
             </div>
           )}
         </div>
-        
+
         {!fileUploaded && !loading ? (
           <div className="mt-8 bg-blue-50 p-6 rounded-lg border border-blue-200">
             <h2 className="text-xl font-semibold mb-2">How to use this app:</h2>
@@ -110,11 +111,8 @@ const ReviewView = ({
               <li>You can pause your review at any time to see current results</li>
               <li>When finished, download your sorted images and JSON data</li>
             </ol>
-            <div className="mt-4 bg-yellow-50 p-4 rounded border border-yellow-200">
-              <h3 className="font-semibold">Need the extractor script?</h3>
-              <p className="text-sm mt-1">
-                Scroll down to find the "Civitai Bounty Data Extractor Script" section.
-              </p>
+            <div className="mt-4 p-4">
+              <ExtractorScript />
             </div>
           </div>
         ) : (
@@ -122,7 +120,7 @@ const ReviewView = ({
             <div className="text-gray-600">
               {allImages.length > 0 ? `Image ${currentImageIndex + 1} of ${allImages.length}` : 'No images loaded'}
             </div>
-            
+
             <div className="flex flex-wrap gap-2">
               {buckets.map(bucket => {
                 const count = stats.buckets[bucket.id] || 0;
@@ -141,43 +139,50 @@ const ReviewView = ({
             </div>
           </div>
         )}
-        
+
         {loading && allImages.length === 0 && (
           <div className="flex justify-center items-center h-64">
             <div className="text-xl">Loading images...</div>
           </div>
         )}
-        
+
         {allImages.length === 0 && !loading && (
           <div className="flex justify-center items-center h-64">
             <div className="text-xl">No images found</div>
           </div>
         )}
-        
+
         {currentImage && (
           <div className="flex flex-col">
             {/* Progress bar */}
             <div className="h-2 w-full bg-gray-200 rounded-full mb-4">
-              <div 
+              <div
                 className="h-2 bg-blue-600 rounded-full"
                 style={{ width: `${(currentImageIndex / (allImages.length - 1)) * 100}%` }}
               ></div>
             </div>
-            
+
             {/* Image and entry header */}
             <div className="border-b pb-4 mb-4">
               <div className="flex justify-between items-start">
                 <div>
                   <h2 className="text-xl font-semibold">
-                    Image #{currentImage.id} (Entry #{currentImage.entryId})
+                      Image #{currentImage.id}
+                    {' '}
+                    <a href={`https://civitai.com/bounties/${bountyId}/entries/${currentImage.entryId}`} target="_blank" rel="noopener noreferrer" className="hover:underline">
+                      (Entry #{currentImage.entryId})
+                    </a>
                   </h2>
                   <div className="text-gray-600">
-                    By: {currentImage.entryData.user.username} • {new Date(currentImage.entryData.createdAt).toLocaleString()}
+                    By:{' '}
+                    <a href={`https://civitai.com/user/${currentImage.entryData.user.username}`} target="_blank" rel="noopener noreferrer" className="hover:underline">
+                      {currentImage.entryData.user.username}
+                    </a>
+                    {' '}• {new Date(currentImage.entryData.createdAt).toLocaleString()}
                   </div>
                   <div className="mt-1 flex flex-wrap gap-2">
-                    <span className={`inline-block px-2 py-1 rounded text-xs font-semibold ${
-                      currentImage.nsfwLevel > 2 ? 'bg-red-100 text-red-800' : 'bg-blue-100 text-blue-800'
-                    }`}>
+                    <span className={`inline-block px-2 py-1 rounded text-xs font-semibold ${currentImage.nsfwLevel > 2 ? 'bg-red-100 text-red-800' : 'bg-blue-100 text-blue-800'
+                      }`}>
                       NSFW Level: {currentImage.nsfwLevel}
                     </span>
                     <span className="inline-block px-2 py-1 rounded text-xs font-semibold bg-gray-100 text-gray-800">
@@ -186,7 +191,7 @@ const ReviewView = ({
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <BucketSelector 
+                  <BucketSelector
                     imageId={currentImage.id}
                     currentBucketId={bucketAssignments[currentImage.id]}
                     buckets={buckets}
@@ -197,11 +202,11 @@ const ReviewView = ({
                 </div>
               </div>
             </div>
-            
+
             {/* Fixed height container for the image */}
             <div className="mb-4 flex justify-center items-center" style={{ minHeight: "400px" }}>
-              <div 
-                ref={imageContainerRef} 
+              <div
+                ref={imageContainerRef}
                 className="w-full h-full flex items-center justify-center"
                 onClick={() => setFullscreenImage(currentImage)}
               >
@@ -219,7 +224,7 @@ const ReviewView = ({
                 />
               </div>
             </div>
-            
+
             {/* Navigation buttons */}
             <div className="mb-4 flex justify-between">
               <button
@@ -229,7 +234,7 @@ const ReviewView = ({
               >
                 Previous
               </button>
-              
+
               <div className="flex gap-2">
                 <button
                   className="bg-yellow-600 text-white px-4 py-2 rounded hover:bg-yellow-700"
@@ -237,7 +242,7 @@ const ReviewView = ({
                 >
                   Pause Review
                 </button>
-                
+
                 <button
                   className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
                   onClick={finishReview}
@@ -245,7 +250,7 @@ const ReviewView = ({
                   Finish
                 </button>
               </div>
-              
+
               <button
                 className="bg-gray-400 text-white px-4 py-2 rounded hover:bg-gray-500"
                 onClick={handleSkip}
@@ -253,14 +258,14 @@ const ReviewView = ({
                 Skip
               </button>
             </div>
-            
+
             {/* Bucket assignment buttons */}
             <div className="sticky bottom-0 bg-white pt-4 pb-2 border-t">
               <div className="flex flex-wrap gap-2 justify-center">
                 {buckets.map((bucket) => {
                   const isCurrentlyAssigned = bucketAssignments[currentImage.id] === bucket.id;
                   const isOver = isBucketFull(bucket.id) && !isCurrentlyAssigned;
-                  
+
                   return (
                     <button
                       key={bucket.id}

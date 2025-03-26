@@ -7,14 +7,25 @@ const ExtractorScript = () => {
  * Civitai Bounty Data Extractor
  * 
  * Instructions:
- * 1. Navigate to the Civitai website in your browser
+ * 1. Navigate to the Civitai bounty page in your browser
  * 2. Open Developer Tools (F12 or Ctrl+Shift+I)
  * 3. Paste this entire script into the Console tab
- * 4. Call the function with: extractBountyEntries(7091) - replace 7091 with your desired bounty ID
- * 5. Wait for the script to finish - it will automatically download a JSON file
+ * 4. The extraction will start automatically
  */
 
-async function extractBountyEntries(bountyId) {
+function getBountyIdFromUrl() {
+  const match = window.location.pathname.match(/\\/bounties\\/(\\d+)/);
+  if (!match) {
+    throw new Error('Please navigate to a Civitai bounty page first');
+  }
+  return match[1];
+}
+
+async function extractBountyEntries(bountyId = null) {
+  if (!bountyId) {
+    bountyId = getBountyIdFromUrl();
+  }
+  
   const allEntries = [];
   let cursor = 0;
   let hasMore = true;
@@ -95,8 +106,14 @@ function checkExtractionStatus(startTime, entryCount) {
   console.log(\`Extraction in progress: \${entryCount} entries (\${elapsed.toFixed(2)}s elapsed)\`);
 }
 
-// Example usage: extractBountyEntries(7091)
-console.log("Civitai Bounty Data Extractor loaded. Call extractBountyEntries(bountyId) to begin extraction.");`;
+// Auto-run the extraction
+console.log("Civitai Bounty Data Extractor loaded. Starting extraction...");
+extractBountyEntries().catch(error => {
+  console.error("Failed to start extraction:", error);
+});
+
+// Example usage: extractBountyEntries()
+console.log("Civitai Bounty Data Extractor loaded. Call extractBountyEntries() to begin extraction.");`;
 
   const handleCopy = () => {
     navigator.clipboard.writeText(scriptContent);
@@ -116,8 +133,8 @@ console.log("Civitai Bounty Data Extractor loaded. Call extractBountyEntries(bou
         </button>
       </div>
       <div className="text-sm mb-4">
-        <p>Copy this script and run it in your browser console while on the Civitai website.</p>
-        <p>Call it with: <code className="bg-gray-100 px-1 py-0.5 rounded">extractBountyEntries(7091)</code> (replace 7091 with your bounty ID)</p>
+        <p>Copy this script and run it in your browser console while on the Civitai bounty page.</p>
+        <p>The extraction will start automatically when you paste the script.</p>
       </div>
       <pre className="bg-gray-800 text-gray-100 p-4 rounded-md overflow-auto text-xs h-64">
         {scriptContent}

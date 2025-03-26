@@ -6,9 +6,6 @@ function App() {
   return (
     <div className="App">
       <CivitaiBountyReviewer />
-      <div className="max-w-4xl mx-auto mt-8 mb-16">
-        <ExtractorScript />
-      </div>
     </div>
   );
 }

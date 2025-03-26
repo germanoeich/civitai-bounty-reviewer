@@ -13,6 +13,7 @@ const CivitaiBountyReviewer = () => {
     error,
     currentImageIndex,
     bucketAssignments,
+    bucketPositions,
     isComplete,
     bountyId,
     fileUploaded,
@@ -26,6 +27,7 @@ const CivitaiBountyReviewer = () => {
     handleFileUpload,
     handleAssignToBucket,
     handleMoveToBucket,
+    handleMoveImagePosition,
     handlePrevious,
     handleSkip,
     togglePause,
@@ -43,6 +45,7 @@ const CivitaiBountyReviewer = () => {
     handleEditBucket,
     handleRemoveBucket,
     handleResetBuckets,
+    handleSaveAllImages,
   } = useBountyReviewer();
 
   if (error && allImages.length === 0) {
@@ -87,14 +90,17 @@ const CivitaiBountyReviewer = () => {
         buckets={buckets}
         allImages={allImages}
         bucketAssignments={bucketAssignments}
+        bucketPositions={bucketPositions}
         bountyId={bountyId}
         getImagesInBucket={getImagesInBucket}
         handleSaveBucketImages={handleSaveBucketImages}
         handleSaveRatingsJson={handleSaveRatingsJson}
+        handleSaveAllImages={handleSaveAllImages}
         resumeReview={resumeReview}
         finishReview={finishReview}
         resetReview={resetReview}
         handleMoveToBucket={handleMoveToBucket}
+        handleMoveImagePosition={handleMoveImagePosition}
         handleSaveImage={handleSaveImage}
         setConfigMode={setConfigMode}
       />

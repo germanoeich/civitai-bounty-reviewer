@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import ImageCard from './ImageCard';
 import FullscreenViewer from './FullscreenViewer';
+import { ChevronLeftIcon, ChevronRightIcon } from 'lucide-react';
 
 const PausedView = ({
   isComplete,
@@ -9,14 +10,17 @@ const PausedView = ({
   buckets,
   allImages,
   bucketAssignments,
+  bucketPositions,
   bountyId,
   getImagesInBucket,
   handleSaveBucketImages,
   handleSaveRatingsJson,
+  handleSaveAllImages,
   resumeReview,
   finishReview,
   resetReview,
   handleMoveToBucket,
+  handleMoveImagePosition,
   handleSaveImage,
   setConfigMode,
 }) => {
@@ -28,6 +32,18 @@ const PausedView = ({
     
     const imagesInBucket = getImagesInBucket(bucketId).length;
     return imagesInBucket >= bucket.limit;
+  };
+
+  const handleMoveUp = (imageId, currentPosition) => {
+    if (currentPosition > 1) {
+      handleMoveImagePosition(imageId, currentPosition - 1);
+    }
+  };
+
+  const handleMoveDown = (imageId, currentPosition, totalImages) => {
+    if (currentPosition < totalImages) {
+      handleMoveImagePosition(imageId, currentPosition + 1);
+    }
   };
 
   return (
@@ -44,83 +60,50 @@ const PausedView = ({
         />
       )}
       
-      <div className="max-w-4xl mx-auto bg-white p-8 rounded-lg shadow-md">
-        <h1 className="text-2xl font-bold mb-4">
-          {isComplete ? "Review Complete!" : "Review Paused"}
-        </h1>
-        
-        <div className="mb-6">
-          <h2 className="text-xl font-semibold mb-2">Summary</h2>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-            {buckets.map(bucket => {
-              const count = stats.buckets[bucket.id] || 0;
-              return (
-                <div 
-                  key={bucket.id} 
-                  className={`p-4 rounded flex-1 ${bucket.color} bg-opacity-20 border border-opacity-30 ${bucket.color.replace('bg-', 'border-')}`}
-                >
-                  <div className={`${bucket.color.replace('bg-', 'text-')} font-bold text-xl`}>{count}</div>
-                  <div className={`${bucket.color.replace('bg-', 'text-')} text-opacity-80`}>{bucket.name}</div>
-                </div>
-              );
-            })}
-            <div className="bg-gray-100 p-4 rounded flex-1">
-              <div className="text-gray-800 font-bold text-xl">{stats.pending}</div>
-              <div className="text-gray-600">Unrated</div>
+      <div className="max-w-7xl mx-auto">
+        <div className="bg-white p-8 rounded-lg shadow-md mb-6">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+            <div>
+              <h1 className="text-2xl font-bold mb-2">Review Status</h1>
+              <div className="text-gray-600">
+                {isComplete ? 'Review Complete' : 'Review Paused'}
+              </div>
             </div>
-          </div>
-        </div>
-        
-        <div className="mb-6">
-          <h2 className="text-xl font-semibold mb-2">Actions</h2>
-          <div className="flex flex-wrap gap-3">
-            {!isComplete && (
+            
+            <div className="flex flex-wrap gap-2">
+              {!isComplete && (
+                <button 
+                  className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
+                  onClick={resumeReview}
+                >
+                  Resume Review
+                </button>
+              )}
               <button 
                 className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-                onClick={resumeReview}
+                onClick={handleSaveRatingsJson}
               >
-                Resume Review
+                Save Ratings
               </button>
-            )}
-            
-            {isPaused && (
-              <button 
-                className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
-                onClick={finishReview}
-              >
-                Complete Review
-              </button>
-            )}
-            
-            {isComplete && (
               <button 
                 className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-                onClick={resumeReview}
+                onClick={handleSaveAllImages}
               >
-                Continue Review
+                Download All Images
               </button>
-            )}
-            
-            <button 
-              className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
-              onClick={handleSaveRatingsJson}
-            >
-              Save Complete JSON
-            </button>
-            
-            <button 
-              className="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700"
-              onClick={resetReview}
-            >
-              Start Over
-            </button>
-
-            <button 
-              className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-              onClick={() => setConfigMode(true)}
-            >
-              Configure Buckets
-            </button>
+              <button 
+                className="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700"
+                onClick={resetReview}
+              >
+                Reset Review
+              </button>
+              <button 
+                className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+                onClick={() => setConfigMode(true)}
+              >
+                Configure Buckets
+              </button>
+            </div>
           </div>
         </div>
         
@@ -162,19 +145,26 @@ const PausedView = ({
                   </div>
                 ) : (
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 p-4 bg-gray-50 rounded-b-lg border border-t-0">
-                    {imagesInBucket.map((image) => (
-                      <ImageCard 
-                        key={image.id} 
-                        image={image} 
-                        showControls={true}
-                        buckets={buckets}
-                        bucketAssignments={bucketAssignments}
-                        onBucketSelect={handleMoveToBucket}
-                        onSaveImage={handleSaveImage}
-                        onImageClick={() => setFullscreenImage(image)}
-                        bountyId={bountyId}
-                        isBucketFull={isBucketFull}
-                      />
+                    {imagesInBucket.map((image, index) => (
+                      <div key={image.id} className="relative">
+                        <ImageCard 
+                          image={image} 
+                          showControls={true}
+                          buckets={buckets}
+                          bucketAssignments={bucketAssignments}
+                          onBucketSelect={handleMoveToBucket}
+                          onSaveImage={handleSaveImage}
+                          onImageClick={() => setFullscreenImage(image)}
+                          onMoveLeft={() => handleMoveUp(image.id, image.position)}
+                          onMoveRight={() => handleMoveDown(image.id, image.position, imagesInBucket.length)}
+                          onMoveToPosition={(newPosition) => handleMoveImagePosition(image.id, newPosition)}
+                          isFirst={image.position === 1}
+                          isLast={image.position === imagesInBucket.length}
+                          position={image.position}
+                          bountyId={bountyId}
+                          isBucketFull={isBucketFull}
+                        />
+                      </div>
                     ))}
                   </div>
                 )}
@@ -205,6 +195,12 @@ const PausedView = ({
                       onBucketSelect={handleMoveToBucket}
                       onSaveImage={handleSaveImage}
                       onImageClick={() => setFullscreenImage(image)}
+                      onMoveLeft={() => handleMoveUp(image.id, image.position)}
+                      onMoveRight={() => handleMoveDown(image.id, image.position, allImages.filter(img => !bucketAssignments[img.id]).length)}
+                      onMoveToPosition={(newPosition) => handleMoveImagePosition(image.id, newPosition)}
+                      isFirst={image.position === 1}
+                      isLast={image.position === allImages.filter(img => !bucketAssignments[img.id]).length}
+                      position={image.position}
                       bountyId={bountyId}
                       isBucketFull={isBucketFull}
                     />
@@ -217,6 +213,13 @@ const PausedView = ({
       </div>
     </div>
   );
+};
+
+// Helper function to get ordinal numbers
+const getOrdinal = (n) => {
+  const s = ["th", "st", "nd", "rd"];
+  const v = n % 100;
+  return n + (s[(v - 20) % 10] || s[v] || s[0]);
 };
 
 export default PausedView; 

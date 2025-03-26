@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { defaultBuckets } from '../utils/constants';
+import JSZip from 'jszip';
 
 export const useBountyReviewer = () => {
   // State for data
@@ -9,6 +10,7 @@ export const useBountyReviewer = () => {
   const [error, setError] = useState(null);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [bucketAssignments, setBucketAssignments] = useState({});
+  const [bucketPositions, setBucketPositions] = useState({});
   const [isComplete, setIsComplete] = useState(false);
   const [bountyId, setBountyId] = useState(null);
   const [fileUploaded, setFileUploaded] = useState(false);
@@ -36,13 +38,18 @@ export const useBountyReviewer = () => {
       const images = [];
       entries.forEach(entry => {
         entry.images.forEach(image => {
-          images.push({
+          console.log('Processing raw image:', image); // Debug log
+          const processedImage = {
             ...image,
             entryId: entry.id,
-            entryData: entry
-          });
+            entryData: entry,
+            url: image.url || image.entryData?.url || image.entryData?.images?.find(img => img.id === image.id)?.url // Try multiple possible URL locations
+          };
+          console.log('Processed image:', processedImage); // Debug log
+          images.push(processedImage);
         });
       });
+      console.log('All processed images:', images); // Debug log
       setAllImages(images);
     }
   }, [entries]);
@@ -66,10 +73,13 @@ export const useBountyReviewer = () => {
     reader.onload = (e) => {
       try {
         const jsonData = JSON.parse(e.target.result);
+        console.log('Raw JSON data loaded:', jsonData); // Debug log
         
         // Check if this is a standard bounty entries JSON
         if (jsonData.entries && Array.isArray(jsonData.entries)) {
           setBountyId(jsonData.bountyId || 'Unknown');
+          console.log('First entry structure:', jsonData.entries[0]); // Debug log
+          console.log('First entry images:', jsonData.entries[0].images); // Debug log
           setEntries(jsonData.entries);
           setJsonData(jsonData);
           setFileUploaded(true);
@@ -127,6 +137,7 @@ export const useBountyReviewer = () => {
     setEntries([]);
     setAllImages([]);
     setBucketAssignments({});
+    setBucketPositions({});
     setCurrentImageIndex(0);
     setIsComplete(false);
     setFileUploaded(false);
@@ -137,9 +148,18 @@ export const useBountyReviewer = () => {
   };
 
   const handleAssignToBucket = (imageId, bucketId) => {
+    // Get current bucket's images to determine position
+    const currentBucketImages = getImagesInBucket(bucketId);
+    const newPosition = currentBucketImages.length + 1;
+
     setBucketAssignments(prev => ({
       ...prev,
       [imageId]: bucketId
+    }));
+
+    setBucketPositions(prev => ({
+      ...prev,
+      [imageId]: newPosition
     }));
 
     if (currentImageIndex < allImages.length - 1) {
@@ -150,10 +170,59 @@ export const useBountyReviewer = () => {
   };
 
   const handleMoveToBucket = (imageId, bucketId) => {
+    // Get current bucket's images to determine position
+    const currentBucketImages = getImagesInBucket(bucketId);
+    const newPosition = currentBucketImages.length + 1;
+
     setBucketAssignments(prev => ({
       ...prev,
       [imageId]: bucketId
     }));
+
+    setBucketPositions(prev => ({
+      ...prev,
+      [imageId]: newPosition
+    }));
+  };
+
+  const handleMoveImagePosition = (imageId, newPosition) => {
+    const bucketId = bucketAssignments[imageId];
+    if (!bucketId) return;
+
+    // Get all images in the bucket with their positions
+    const bucketImages = getImagesInBucket(bucketId)
+      .map(img => ({
+        ...img,
+        position: bucketPositions[img.id] || 0
+      }))
+      .sort((a, b) => a.position - b.position);
+
+    // Update positions of affected images
+    const updatedPositions = { ...bucketPositions };
+    
+    if (newPosition > bucketPositions[imageId]) {
+      // Moving down - shift images in between down
+      bucketImages.forEach(img => {
+        if (img.id !== imageId && 
+            img.position > bucketPositions[imageId] && 
+            img.position <= newPosition) {
+          updatedPositions[img.id] = img.position - 1;
+        }
+      });
+    } else {
+      // Moving up - shift images in between up
+      bucketImages.forEach(img => {
+        if (img.id !== imageId && 
+            img.position >= newPosition && 
+            img.position < bucketPositions[imageId]) {
+          updatedPositions[img.id] = img.position + 1;
+        }
+      });
+    }
+
+    // Update the target image's position
+    updatedPositions[imageId] = newPosition;
+    setBucketPositions(updatedPositions);
   };
 
   const handlePrevious = () => {
@@ -186,7 +255,13 @@ export const useBountyReviewer = () => {
   };
 
   const getImagesInBucket = (bucketId) => {
-    return allImages.filter(image => bucketAssignments[image.id] === bucketId);
+    return allImages
+      .filter(image => bucketAssignments[image.id] === bucketId)
+      .map(image => ({
+        ...image,
+        position: bucketPositions[image.id] || 0
+      }))
+      .sort((a, b) => a.position - b.position);
   };
 
   const getStats = () => {
@@ -234,7 +309,8 @@ export const useBountyReviewer = () => {
         imageId: image.id,
         entryId: image.entryId,
         url: image.url,
-        bucket: bucketAssignments[image.id]
+        bucket: bucketAssignments[image.id],
+        position: bucketPositions[image.id] || 0
       })),
       entries: entries
     };
@@ -250,21 +326,154 @@ export const useBountyReviewer = () => {
     document.body.removeChild(link);
   };
 
-  const handleSaveBucketImages = (bucketId) => {
+  const handleSaveBucketImages = async (bucketId) => {
     const bucketImages = getImagesInBucket(bucketId);
     const bucket = buckets.find(b => b.id === bucketId);
     const bucketName = bucket ? bucket.name.replace(/\s+/g, '_').toLowerCase() : bucketId;
     
-    alert(`This will download ${bucketImages.length} images from the "${bucket ? bucket.name : bucketId}" bucket one by one.`);
-    
-    bucketImages.forEach((image, imageIndex) => {
-      setTimeout(() => {
-        handleSaveImage(
-          image.url, 
-          `bounty_${bountyId}_${bucketName}_${imageIndex+1}_image_${image.id}.jpg`
-        );
-      }, imageIndex * 1000);
-    });
+    try {
+      // Create a new ZIP file
+      const zip = new JSZip();
+      const folder = zip.folder(`bounty_${bountyId}_${bucketName}`);
+
+      // Download all images in parallel with a concurrency limit
+      const concurrencyLimit = 5; // Download 5 images at a time
+      const chunks = [];
+      for (let i = 0; i < bucketImages.length; i += concurrencyLimit) {
+        chunks.push(bucketImages.slice(i, i + concurrencyLimit));
+      }
+
+      let downloadedCount = 0;
+      for (const chunk of chunks) {
+        await Promise.all(chunk.map(async (image) => {
+          try {
+            // Construct the full image URL with the Civitai CDN base URL
+            const imageUrl = `https://image.civitai.com/xG1nkqKTMzGDvpLrqFT7WA/${image.url || image.entryData?.url}/width=1024`;
+
+            console.log('Downloading image:', imageUrl);
+            // Fetch the image
+            const response = await fetch(imageUrl);
+            if (!response.ok) {
+              throw new Error(`Failed to fetch image: ${response.status} ${response.statusText}`);
+            }
+            const blob = await response.blob();
+
+            // Add the image to the ZIP file with position-based filename
+            const position = image.position || 0;
+            const ordinal = getOrdinal(position);
+            folder.file(`${ordinal}_image_${image.id}.jpg`, blob);
+            downloadedCount++;
+            console.log(`Successfully downloaded image ${image.id}`);
+          } catch (error) {
+            console.error(`Failed to download image ${image.id}:`, error);
+          }
+        }));
+      }
+
+      // Generate the ZIP file
+      console.log('Generating ZIP file...');
+      const content = await zip.generateAsync({ type: 'blob' });
+      
+      // Create a download link for the ZIP file
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(content);
+      link.download = `bounty_${bountyId}_${bucketName}_images.zip`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(link.href);
+
+      // Show success message
+      alert(`Successfully downloaded ${downloadedCount} images as a ZIP file!`);
+    } catch (error) {
+      console.error('Error downloading images:', error);
+      alert('Failed to download images. Please try again.');
+    }
+  };
+
+  const handleSaveAllImages = async () => {
+    try {
+      // Create a new ZIP file
+      const zip = new JSZip();
+      const rootFolder = zip.folder(`bounty_${bountyId}_all_images`);
+
+      // Get all images that have been assigned to buckets
+      const allImagesWithBuckets = allImages
+        .filter(image => bucketAssignments[image.id]) // Only include images that have been assigned to buckets
+        .map(image => ({
+          ...image,
+          bucketId: bucketAssignments[image.id],
+          position: bucketPositions[image.id] || 0
+        }));
+
+      if (allImagesWithBuckets.length === 0) {
+        alert('No images have been assigned to buckets yet.');
+        return;
+      }
+
+      // Download all images in parallel with a concurrency limit
+      const concurrencyLimit = 5; // Download 5 images at a time
+      const chunks = [];
+      for (let i = 0; i < allImagesWithBuckets.length; i += concurrencyLimit) {
+        chunks.push(allImagesWithBuckets.slice(i, i + concurrencyLimit));
+      }
+
+      let downloadedCount = 0;
+      for (const chunk of chunks) {
+        await Promise.all(chunk.map(async (image) => {
+          try {
+            const bucket = buckets.find(b => b.id === image.bucketId);
+            const bucketName = bucket ? bucket.name.replace(/\s+/g, '_').toLowerCase() : image.bucketId;
+            
+            // Create bucket folder if it doesn't exist
+            const bucketFolder = rootFolder.folder(bucketName);
+
+            console.log('Downloading image:', image);
+            // Get the image URL
+            const imageUrl = image.url;
+
+            if (!imageUrl) {
+              return;
+            }
+
+            // Construct the full image URL with the Civitai CDN base URL
+            const fullImageUrl = `https://image.civitai.com/xG1nkqKTMzGDvpLrqFT7WA/${imageUrl}/width=1024`;
+
+            // Fetch the image
+            const response = await fetch(fullImageUrl);
+            if (!response.ok) {
+              throw new Error(`Failed to fetch image: ${response.status} ${response.statusText}`);
+            }
+            const blob = await response.blob();
+
+            // Add the image to the ZIP file with position-based filename
+            const ordinal = getOrdinal(image.position);
+            bucketFolder.file(`${ordinal}_image_${image.id}.jpg`, blob);
+            downloadedCount++;
+          } catch (error) {
+            console.error(`Failed to download image ${image.id}:`, error);
+          }
+        }));
+      }
+
+      // Generate the ZIP file
+      const content = await zip.generateAsync({ type: 'blob' });
+      
+      // Create a download link for the ZIP file
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(content);
+      link.download = `bounty_${bountyId}_all_images.zip`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(link.href);
+
+      // Show success message
+      alert(`Successfully downloaded ${downloadedCount} images as a ZIP file!`);
+    } catch (error) {
+      console.error('Error downloading images:', error);
+      alert('Failed to download images. Please try again.');
+    }
   };
 
   const handleAddBucket = (newBucket) => {
@@ -308,6 +517,13 @@ export const useBountyReviewer = () => {
 
   const stats = getStats();
 
+  // Helper function to get ordinal numbers
+  const getOrdinal = (n) => {
+    const s = ["th", "st", "nd", "rd"];
+    const v = n % 100;
+    return n + (s[(v - 20) % 10] || s[v] || s[0]);
+  };
+
   return {
     entries,
     allImages,
@@ -315,6 +531,7 @@ export const useBountyReviewer = () => {
     error,
     currentImageIndex,
     bucketAssignments,
+    bucketPositions,
     isComplete,
     bountyId,
     fileUploaded,
@@ -328,6 +545,7 @@ export const useBountyReviewer = () => {
     handleFileUpload,
     handleAssignToBucket,
     handleMoveToBucket,
+    handleMoveImagePosition,
     handlePrevious,
     handleSkip,
     togglePause,
@@ -341,6 +559,7 @@ export const useBountyReviewer = () => {
     handleSaveImage,
     handleSaveRatingsJson,
     handleSaveBucketImages,
+    handleSaveAllImages,
     handleAddBucket,
     handleEditBucket,
     handleRemoveBucket,
