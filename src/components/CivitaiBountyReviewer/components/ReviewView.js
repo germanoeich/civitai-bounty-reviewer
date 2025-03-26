@@ -1,0 +1,291 @@
+import React, { useState, useRef } from 'react';
+import BucketSelector from './BucketSelector';
+import FullscreenViewer from './FullscreenViewer';
+
+const ReviewView = ({
+  fileUploaded,
+  loading,
+  allImages,
+  currentImageIndex,
+  currentImage,
+  buckets,
+  stats,
+  bucketAssignments,
+  bountyId,
+  handleFileUpload,
+  handleAssignToBucket,
+  handlePrevious,
+  handleSkip,
+  togglePause,
+  finishReview,
+  resetReview,
+  setConfigMode,
+  handleSaveImage,
+}) => {
+  const [fullscreenImage, setFullscreenImage] = useState(null);
+  const imageContainerRef = useRef(null);
+
+  const isBucketFull = (bucketId) => {
+    const bucket = buckets.find(b => b.id === bucketId);
+    if (!bucket || bucket.limit === null) return false;
+    
+    const imagesInBucket = allImages.filter(img => bucketAssignments[img.id] === bucketId).length;
+    return imagesInBucket >= bucket.limit;
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-100 p-6">
+      {fullscreenImage && (
+        <FullscreenViewer
+          fullscreenImage={fullscreenImage}
+          allImages={allImages}
+          buckets={buckets}
+          bucketAssignments={bucketAssignments}
+          onBucketSelect={handleAssignToBucket}
+          onClose={(nextImage) => setFullscreenImage(nextImage || null)}
+          isBucketFull={isBucketFull}
+        />
+      )}
+      
+      <div className="max-w-4xl mx-auto bg-white p-8 rounded-lg shadow-md">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4">
+          <h1 className="text-2xl font-bold">Civitai Bounty Reviewer</h1>
+          
+          {!fileUploaded ? (
+            <div className="flex flex-col space-y-2">
+              <label className="bg-blue-600 text-white px-3 py-2 rounded hover:bg-blue-700 text-center cursor-pointer">
+                Upload JSON File
+                <input
+                  type="file"
+                  accept=".json"
+                  onChange={handleFileUpload}
+                  className="hidden"
+                />
+              </label>
+              <div className="flex justify-center space-x-2">
+                <button
+                  onClick={() => setConfigMode(true)}
+                  className="text-blue-600 hover:underline text-sm"
+                >
+                  Configure Buckets
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex space-x-2 items-center">
+              <div className="bg-green-100 text-green-800 px-3 py-1 rounded text-sm">
+                Bounty #{bountyId} • {allImages.length} images
+              </div>
+              <button
+                onClick={() => setConfigMode(true)}
+                className="bg-blue-600 text-white px-2 py-1 rounded hover:bg-blue-700 text-sm"
+              >
+                Buckets
+              </button>
+              <button
+                onClick={togglePause}
+                className="bg-yellow-600 text-white px-2 py-1 rounded hover:bg-yellow-700 text-sm"
+              >
+                Pause
+              </button>
+              <button
+                onClick={resetReview}
+                className="text-red-600 hover:text-red-800 text-sm"
+              >
+                Reset
+              </button>
+            </div>
+          )}
+        </div>
+        
+        {!fileUploaded && !loading ? (
+          <div className="mt-8 bg-blue-50 p-6 rounded-lg border border-blue-200">
+            <h2 className="text-xl font-semibold mb-2">How to use this app:</h2>
+            <ol className="list-decimal pl-5 space-y-2">
+              <li>First, configure your sorting buckets by clicking on "Configure Buckets"</li>
+              <li>Run the extractor script in your browser console on the Civitai website</li>
+              <li>Save the generated JSON file to your computer</li>
+              <li>Upload the JSON file using the button above</li>
+              <li>Assign each image to a bucket using the bucket buttons</li>
+              <li>You can pause your review at any time to see current results</li>
+              <li>When finished, download your sorted images and JSON data</li>
+            </ol>
+            <div className="mt-4 bg-yellow-50 p-4 rounded border border-yellow-200">
+              <h3 className="font-semibold">Need the extractor script?</h3>
+              <p className="text-sm mt-1">
+                Scroll down to find the "Civitai Bounty Data Extractor Script" section.
+              </p>
+            </div>
+          </div>
+        ) : (
+          <div className="mb-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-2">
+            <div className="text-gray-600">
+              {allImages.length > 0 ? `Image ${currentImageIndex + 1} of ${allImages.length}` : 'No images loaded'}
+            </div>
+            
+            <div className="flex flex-wrap gap-2">
+              {buckets.map(bucket => {
+                const count = stats.buckets[bucket.id] || 0;
+                const limit = bucket.limit || '∞';
+                return (
+                  <div key={bucket.id} className="text-sm">
+                    <span className={`${bucket.color.replace('bg-', 'text-')} font-semibold`}>
+                      {bucket.name}: {count}/{limit === '∞' ? '∞' : limit}
+                    </span>
+                  </div>
+                );
+              })}
+              <div className="text-gray-600 text-sm">
+                <span className="font-semibold">Pending: {stats.pending}</span>
+              </div>
+            </div>
+          </div>
+        )}
+        
+        {loading && allImages.length === 0 && (
+          <div className="flex justify-center items-center h-64">
+            <div className="text-xl">Loading images...</div>
+          </div>
+        )}
+        
+        {allImages.length === 0 && !loading && (
+          <div className="flex justify-center items-center h-64">
+            <div className="text-xl">No images found</div>
+          </div>
+        )}
+        
+        {currentImage && (
+          <div className="flex flex-col">
+            {/* Progress bar */}
+            <div className="h-2 w-full bg-gray-200 rounded-full mb-4">
+              <div 
+                className="h-2 bg-blue-600 rounded-full"
+                style={{ width: `${(currentImageIndex / (allImages.length - 1)) * 100}%` }}
+              ></div>
+            </div>
+            
+            {/* Image and entry header */}
+            <div className="border-b pb-4 mb-4">
+              <div className="flex justify-between items-start">
+                <div>
+                  <h2 className="text-xl font-semibold">
+                    Image #{currentImage.id} (Entry #{currentImage.entryId})
+                  </h2>
+                  <div className="text-gray-600">
+                    By: {currentImage.entryData.user.username} • {new Date(currentImage.entryData.createdAt).toLocaleString()}
+                  </div>
+                  <div className="mt-1 flex flex-wrap gap-2">
+                    <span className={`inline-block px-2 py-1 rounded text-xs font-semibold ${
+                      currentImage.nsfwLevel > 2 ? 'bg-red-100 text-red-800' : 'bg-blue-100 text-blue-800'
+                    }`}>
+                      NSFW Level: {currentImage.nsfwLevel}
+                    </span>
+                    <span className="inline-block px-2 py-1 rounded text-xs font-semibold bg-gray-100 text-gray-800">
+                      Dimensions: {currentImage.width}×{currentImage.height}
+                    </span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <BucketSelector 
+                    imageId={currentImage.id}
+                    currentBucketId={bucketAssignments[currentImage.id]}
+                    buckets={buckets}
+                    onBucketSelect={handleAssignToBucket}
+                    isBucketFull={isBucketFull}
+                    bucketAssignments={bucketAssignments}
+                  />
+                </div>
+              </div>
+            </div>
+            
+            {/* Fixed height container for the image */}
+            <div className="mb-4 flex justify-center items-center" style={{ minHeight: "400px" }}>
+              <div 
+                ref={imageContainerRef} 
+                className="w-full h-full flex items-center justify-center"
+                onClick={() => setFullscreenImage(currentImage)}
+              >
+                <img
+                  src={`https://image.civitai.com/xG1nkqKTMzGDvpLrqFT7WA/${currentImage.url}/width=800`}
+                  alt={`Image ${currentImage.id}`}
+                  style={{
+                    maxWidth: '100%',
+                    maxHeight: '600px',
+                    width: 'auto',
+                    height: 'auto',
+                    objectFit: 'contain'
+                  }}
+                  className="rounded border cursor-pointer"
+                />
+              </div>
+            </div>
+            
+            {/* Navigation buttons */}
+            <div className="mb-4 flex justify-between">
+              <button
+                className="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700"
+                onClick={handlePrevious}
+                disabled={currentImageIndex === 0}
+              >
+                Previous
+              </button>
+              
+              <div className="flex gap-2">
+                <button
+                  className="bg-yellow-600 text-white px-4 py-2 rounded hover:bg-yellow-700"
+                  onClick={togglePause}
+                >
+                  Pause Review
+                </button>
+                
+                <button
+                  className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
+                  onClick={finishReview}
+                >
+                  Finish
+                </button>
+              </div>
+              
+              <button
+                className="bg-gray-400 text-white px-4 py-2 rounded hover:bg-gray-500"
+                onClick={handleSkip}
+              >
+                Skip
+              </button>
+            </div>
+            
+            {/* Bucket assignment buttons */}
+            <div className="sticky bottom-0 bg-white pt-4 pb-2 border-t">
+              <div className="flex flex-wrap gap-2 justify-center">
+                {buckets.map((bucket) => {
+                  const isCurrentlyAssigned = bucketAssignments[currentImage.id] === bucket.id;
+                  const isOver = isBucketFull(bucket.id) && !isCurrentlyAssigned;
+                  
+                  return (
+                    <button
+                      key={bucket.id}
+                      className={`${bucket.color} text-white px-4 py-2 rounded 
+                        ${isOver ? 'opacity-75' : `hover:${bucket.color.replace('bg-', 'bg-')}-700`}
+                        ${isCurrentlyAssigned ? 'ring-2 ring-offset-2 ring-white' : ''}`}
+                      onClick={() => handleAssignToBucket(currentImage.id, bucket.id)}
+                      title={isOver ? `${bucket.name} bucket is over limit (${stats.buckets[bucket.id]}/${bucket.limit})` : bucket.name}
+                    >
+                      {bucket.name}
+                      {bucket.limit && (
+                        <span className="ml-1 text-xs">
+                          ({(stats.buckets[bucket.id] || 0)}/{bucket.limit})
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default ReviewView; 
