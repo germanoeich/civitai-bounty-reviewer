@@ -6,7 +6,7 @@ import { Helmet } from "react-helmet"
 import "./index.css"
 
 function App() {
-  const [darkMode, setDarkMode] = useState(window.localStorage.getItem('nightwind-mode') === 'dark');
+  const [darkMode, setDarkMode] = useState((window.localStorage.getItem('nightwind-mode') || 'light') === 'light');
   return (<>
   <Helmet>
       <script>{nightwind.init()}</script>
