@@ -14,6 +14,7 @@ const ReviewView = ({
   stats,
   bucketAssignments,
   bountyId,
+  handleUrlLoad,
   handleFileUpload,
   handleAssignToBucket,
   handlePrevious,
@@ -65,6 +66,14 @@ const ReviewView = ({
                   className="hidden"
                 />
               </label>
+              <div className="flex justify-center space-x-2">
+                <button
+                  onClick={() => { handleUrlLoad('/bounty_7091_entries.json') }}
+                  className="text-blue-600 hover:underline text-sm"
+                >
+                  Use sample (NSFW)
+                </button>
+              </div>
               <div className="flex justify-center space-x-2">
                 <button
                   onClick={() => setConfigMode(true)}

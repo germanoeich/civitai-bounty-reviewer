@@ -29,6 +29,7 @@ const CivitaiBountyReviewer = () => {
     buckets,
     stats,
     handleFileUpload: originalHandleFileUpload,
+    handleUrlLoad,
     handleAssignToBucket,
     handleMoveToBucket,
     handleMoveImagePosition,
@@ -189,6 +190,7 @@ const CivitaiBountyReviewer = () => {
         bucketAssignments={bucketAssignments}
         bountyId={bountyId}
         handleFileUpload={handleFileUpload}
+        handleUrlLoad={handleUrlLoad}
         handleAssignToBucket={handleAssignToBucket}
         handlePrevious={handlePrevious}
         handleSkip={handleSkip}

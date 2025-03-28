@@ -128,6 +128,71 @@ export const useBountyReviewer = () => {
     reader.readAsText(file);
   };
 
+  const handleUrlLoad = (url) => {
+    if (!url) return;
+    
+    setLoading(true);
+    setError(null);
+    
+    fetch(url)
+      .then(response => {
+        if (!response.ok) {
+          throw new Error(`Failed to fetch: ${response.status} ${response.statusText}`);
+        }
+        return response.json();
+      })
+      .then(jsonData => {
+        // Check if this is a complete app state JSON (contains version field)
+        if (jsonData.version) {
+          // This is a saved app state
+          handleLoadAppState(jsonData);
+        }
+        // Check if this is a standard bounty entries JSON
+        else if (jsonData.entries && Array.isArray(jsonData.entries)) {
+          setBountyId(jsonData.bountyId || 'Unknown');
+          setEntries(jsonData.entries);
+          setJsonData(jsonData);
+          setFileUploaded(true);
+          setLoading(false);
+        } 
+        // Check if this is a ratings JSON from our app
+        else if (jsonData.images && Array.isArray(jsonData.images)) {
+          setBountyId(jsonData.bountyId || 'Unknown');
+          
+          // Set the image bucket assignments
+          setIsLoadingRatings(true);
+          const assignments = {};
+          jsonData.images.forEach(img => {
+            if (img.bucket) {
+              assignments[img.imageId] = img.bucket;
+            }
+          });
+          setBucketAssignments(assignments);
+          
+          // If we have bucket configurations, load those
+          if (jsonData.buckets && Array.isArray(jsonData.buckets)) {
+            setBuckets(jsonData.buckets);
+          }
+          
+          // If we have full entries data, load that too
+          if (jsonData.entries && Array.isArray(jsonData.entries)) {
+            setEntries(jsonData.entries);
+          }
+          
+          setJsonData(jsonData);
+          setFileUploaded(true);
+          setLoading(false);
+          setIsLoadingRatings(false);
+        } else {
+          throw new Error('Invalid JSON format: Expected either "entries", "images" array, or a saved application state');
+        }
+      })
+      .catch(error => {
+        console.error("Error loading JSON from URL:", error);
+        setError(`Failed to load JSON from URL: ${error.message}`);
+        setLoading(false);
+      });
+  };
   const resetReview = () => {
     const goAhead = window.confirm("Are you sure? This will clear all the ratings you've made so far. Make sure you saved your review first.");
     if(!goAhead) return;
@@ -550,6 +615,7 @@ export const useBountyReviewer = () => {
     buckets,
     stats,
     handleFileUpload,
+    handleUrlLoad,
     handleAssignToBucket,
     handleMoveToBucket,
     handleMoveImagePosition,
