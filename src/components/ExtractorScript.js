@@ -127,7 +127,7 @@ console.log("<h1>Extraction started. Please remain in this tab until the extract
         <h2 className="text-xl font-bold">Civitai Bounty Data Extractor Script</h2>
         <button 
           onClick={handleCopy}
-          className={`px-4 py-2 rounded ${copied ? 'bg-green-600' : 'bg-blue-600'} text-white`}
+          className={`px-4 py-2 rounded-sm ${copied ? 'bg-green-600' : 'bg-blue-600'} text-white`}
         >
           {copied ? 'Copied!' : 'Copy Script'}
         </button>
@@ -139,8 +139,12 @@ console.log("<h1>Extraction started. Please remain in this tab until the extract
       <div className="text-sm mb-4 text-red-500 font-bold">
         
         <p className='text-red-500'><span className="mr-2">🚨</span> Running scripts in your browser is dangerous. A malicious actor could quite literally take full control of your account and drain all your buzz if you paste code without verifying it first. I urge you to verify the code yourself, but since not everyone is a coder, I suggest you use an LLM like Claude or ChatGPT to verify the safety of this script.</p>
+        <p className='text-yellow-600'><span className="mr-2">⚠️</span> You can run this script without being logged into your account. </p>
+        <br />
+        <p className='text-green-500'>Claude report: <a className='text-blue-500' href="https://claude.ai/share/805587b0-fe00-405b-9955-33ea4d0adfcc">https://claude.ai/share/805587b0-fe00-405b-9955-33ea4d0adfcc</a></p>
+        <p className='text-green-500'>ChatGPT report: <a className='text-blue-500' href="https://chatgpt.com/share/67e6ea09-1970-800f-91bd-60dd28c0d6d0">https://chatgpt.com/share/67e6ea09-1970-800f-91bd-60dd28c0d6d0</a></p>
       </div>
-      <pre className="bg-gray-800 text-gray-100 p-4 rounded-md overflow-auto text-xs h-64">
+      <pre className="bg-gray-800 text-gray-100 dark:bg-gray-50 dark:text-gray-900 p-4 rounded-md overflow-auto text-xs h-64">
         {scriptContent}
       </pre>
     </div>

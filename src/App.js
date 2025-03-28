@@ -12,7 +12,7 @@ function App() {
       <script>{nightwind.init()}</script>
     </Helmet>
     <div className="App text-black min-h-screen bg-gray-100 p-6">
-    <label class="inline-flex items-center cursor-pointer">
+    <label class="inline-flex items-center cursor-pointer absolute">
       <input type="checkbox" checked={darkMode} onChange={() => {
         nightwind.toggle()
         setDarkMode(!darkMode)

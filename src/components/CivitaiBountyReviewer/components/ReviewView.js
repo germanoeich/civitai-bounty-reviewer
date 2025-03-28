@@ -68,7 +68,7 @@ const ReviewView = ({
               </label>
               <div className="flex justify-center space-x-2">
                 <button
-                  onClick={() => { handleUrlLoad('/bounty_7091_entries.json') }}
+                  onClick={() => { handleUrlLoad(`${process.env.PUBLIC_URL}/bounty_7091_entries.json`) }}
                   className="text-blue-600 hover:underline text-sm"
                 >
                   Use sample (NSFW)
@@ -120,15 +120,18 @@ const ReviewView = ({
         {!fileUploaded && !loading ? (
           <div className="mt-8 bg-blue-50 dark:bg-gray-300 p-6 rounded-lg border border-blue-200">
             <h2 className="text-xl font-semibold mb-2">How to use this app:</h2>
-            <ol className="list-decimal pl-5 space-y-2">
-              <li>First, configure your sorting buckets by clicking on "Configure Buckets"</li>
-              <li>Run the extractor script in your browser console on the Civitai website</li>
-              <li>Save the generated JSON file to your computer</li>
-              <li>Upload the JSON file using the button above</li>
-              <li>Assign each image to a bucket using the bucket buttons</li>
-              <li>You can pause your review at any time to see current results</li>
-              <li>When finished, download your sorted images and JSON data</li>
+            <div class="container mx-auto p-4">
+            <h3 class="text-lg font-bold mb-4">Instructions:</h3>
+            <ol class="list-decimal pl-5 space-y-2">
+              <li>Click "Configure Buckets" to set up your sorting categories</li>
+              <li>Visit the Civitai bounty page you want to extract</li>
+              <li>Open your browser's console (right-click {'>'} Inspect {'>'} Console), <a className="text-blue-500" href="https://www.browserstack.com/guide/run-javascript-chrome-browser">click here for a guide</a></li>
+              <li>Paste the extraction script and press Enter</li>
+              <li>When processing completes, save the JSON file</li>
+              <li>Return here and upload your saved JSON file</li>
             </ol>
+          </div>
+
             <div className="mt-4 p-4">
               <ExtractorScript />
             </div>
@@ -314,7 +317,7 @@ const ReviewView = ({
             </div>
 
             {/* Bucket assignment buttons */}
-            <div className="sticky bottom-0 bg-white pt-2 pb-2 border-t">
+            <div className="sticky bottom-0 bg-white dark:bg-gray-50 pt-2 pb-2 border-t">
               <div className="flex flex-wrap gap-2 justify-center">
                 {buckets.map((bucket) => {
                   const isCurrentlyAssigned = bucketAssignments[currentImage.id] === bucket.id;
