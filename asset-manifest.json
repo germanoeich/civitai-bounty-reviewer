@@ -1,13 +1,13 @@
 {
   "files": {
-    "main.css": "/civitai-bounty-reviewer/static/css/main.dd6dee7e.css",
-    "main.js": "/civitai-bounty-reviewer/static/js/main.8365a6c4.js",
+    "main.css": "/civitai-bounty-reviewer/static/css/main.1e6ef385.css",
+    "main.js": "/civitai-bounty-reviewer/static/js/main.031642be.js",
     "index.html": "/civitai-bounty-reviewer/index.html",
-    "main.dd6dee7e.css.map": "/civitai-bounty-reviewer/static/css/main.dd6dee7e.css.map",
-    "main.8365a6c4.js.map": "/civitai-bounty-reviewer/static/js/main.8365a6c4.js.map"
+    "main.1e6ef385.css.map": "/civitai-bounty-reviewer/static/css/main.1e6ef385.css.map",
+    "main.031642be.js.map": "/civitai-bounty-reviewer/static/js/main.031642be.js.map"
   },
   "entrypoints": [
-    "static/css/main.dd6dee7e.css",
-    "static/js/main.8365a6c4.js"
+    "static/css/main.1e6ef385.css",
+    "static/js/main.031642be.js"
   ]
 }
