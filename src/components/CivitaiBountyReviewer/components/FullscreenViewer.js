@@ -2,34 +2,34 @@ import React, { useEffect, useState, useRef } from 'react';
 import { XIcon, ChevronLeftIcon, ChevronRightIcon, ZoomInIcon, ZoomOutIcon } from 'lucide-react';
 import BucketSelector from './BucketSelector';
 
-const FullscreenViewer = ({ 
-  fullscreenImage, 
-  allImages, 
-  buckets, 
-  bucketAssignments, 
-  onBucketSelect, 
+const FullscreenViewer = ({
+  fullscreenImage,
+  allImages,
+  buckets,
+  bucketAssignments,
+  onBucketSelect,
   onClose,
-  isBucketFull 
+  isBucketFull
 }) => {
   const [isZoomed, setIsZoomed] = useState(false);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const imageRef = useRef(null);
   const [scale, setScale] = useState(1);
-  
+
   // Find the index of the current fullscreen image
   const currentIndex = fullscreenImage ? allImages.findIndex(img => img.id === fullscreenImage.id) : -1;
-  
+
   // Get next and previous images
   const hasNext = currentIndex < allImages.length - 1;
   const hasPrev = currentIndex > 0;
-  
+
   const handleNext = () => {
     if (hasNext && fullscreenImage) {
       const nextImage = allImages[currentIndex + 1];
       onClose(nextImage);
     }
   };
-  
+
   const handlePrev = () => {
     if (hasPrev && fullscreenImage) {
       const prevImage = allImages[currentIndex - 1];
@@ -39,28 +39,28 @@ const FullscreenViewer = ({
 
   const handleMouseMove = (e) => {
     if (!imageRef.current) return;
-    
+
     const rect = imageRef.current.getBoundingClientRect();
     const x = ((e.clientX - rect.left) / rect.width) * 100;
     const y = ((e.clientY - rect.top) / rect.height) * 100;
-    
+
     setMousePosition({ x, y });
   };
 
   const handleImageLoad = (e) => {
     if (!imageRef.current) return;
-    
+
     const img = e.target;
     const containerRect = imageRef.current.getBoundingClientRect();
     const scaleX = img.naturalWidth / containerRect.width;
     const scaleY = img.naturalHeight / containerRect.height;
     setScale(Math.max(scaleX, scaleY));
   };
-  
+
   // Handle keyboard navigation
   useEffect(() => {
     if (!fullscreenImage) return;
-    
+
     const handleKeyDown = (e) => {
       if (e.key === 'Escape') {
         if (isZoomed) {
@@ -73,19 +73,19 @@ const FullscreenViewer = ({
       if (e.key === 'ArrowLeft') handlePrev();
       if (e.key === 'z' || e.key === 'Z') setIsZoomed(prev => !prev);
     };
-    
+
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [fullscreenImage, hasNext, hasPrev, isZoomed]);
-  
+
   if (!fullscreenImage) return null;
-  
+
   // Get current bucket if any
   const currentBucket = buckets.find(b => b.id === bucketAssignments[fullscreenImage.id]);
-  
+
   return (
-    <div 
-      className="fixed inset-0 bg-black bg-opacity-90 z-50 flex flex-col"
+    <div
+      className="fixed inset-0 bg-black bg-opacity-90 z-50 flex flex-col nightwind-prevent nightwind-prevent-block"
       onClick={(e) => {
         onClose();
       }}
@@ -106,7 +106,7 @@ const FullscreenViewer = ({
           </h2>
         </div>
         <div className="flex items-center space-x-2">
-          <BucketSelector 
+          <BucketSelector
             imageId={fullscreenImage.id}
             currentBucketId={bucketAssignments[fullscreenImage.id]}
             buckets={buckets}
@@ -119,11 +119,11 @@ const FullscreenViewer = ({
 
       {/* Main content */}
       <div className="flex-1 flex items-center justify-center p-4">
-        <div 
+        <div
           className="relative w-full h-full flex items-center justify-center"
           onMouseMove={handleMouseMove}
         >
-          <div 
+          <div
             ref={imageRef}
             className="transition-transform duration-200"
             style={{
@@ -131,23 +131,50 @@ const FullscreenViewer = ({
               transformOrigin: `${mousePosition.x}% ${mousePosition.y}%`
             }}
           >
-            <img
-              src={`https://image.civitai.com/xG1nkqKTMzGDvpLrqFT7WA/${fullscreenImage.url}/width=1600`}
-              alt={`Image ${fullscreenImage.id}`}
-              style={{
-                maxWidth: '100%',
-                maxHeight: 'calc(100vh - 200px)',
-                width: 'auto',
-                height: 'auto',
-                objectFit: 'contain'
-              }}
-              className="rounded-lg cursor-pointer"
-              onLoad={handleImageLoad}
-              onClick={(e) => {
-                e.stopPropagation();
-                setIsZoomed(!isZoomed);
-              }}
-            />
+            {fullscreenImage.type === 'image' &&
+              <img
+                src={`https://image.civitai.com/xG1nkqKTMzGDvpLrqFT7WA/${fullscreenImage.url}/original=true/${fullscreenImage.name}`}
+                key={fullscreenImage.url}
+                alt={`Image ${fullscreenImage.id}`}
+                style={{
+                  maxWidth: '100%',
+                  maxHeight: 'calc(100vh - 200px)',
+                  width: 'auto',
+                  height: 'auto',
+                  objectFit: 'contain'
+                }}
+                className="rounded-lg cursor-pointer"
+                onLoad={handleImageLoad}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsZoomed(!isZoomed);
+                }}
+              />
+            }
+            {fullscreenImage.type === "video" &&
+              <video
+                playsinline
+                autoPlay
+                loop
+                controls
+                disablepictureinpicture
+                poster={`https://image.civitai.com/xG1nkqKTMzGDvpLrqFT7WA/${fullscreenImage.url}/anim=false,transcode=true,original=true/${fullscreenImage.url}.jpeg`}
+                style={{
+                  maxWidth: '100%',
+                  maxHeight: 'calc(100vh - 200px)',
+                  width: 'auto',
+                  height: 'auto',
+                  objectFit: 'contain'
+                }}
+                key={fullscreenImage.url}
+              >
+                <source src={`https://image.civitai.com/xG1nkqKTMzGDvpLrqFT7WA/${fullscreenImage.url}/transcode=true,original=true,quality=90/${fullscreenImage.name.split('.')[0]}.webm`}
+                  type="video/webm" />
+                <source src={"https://image.civitai.com/xG1nkqKTMzGDvpLrqFT7WA/${fullscreenImage.url}/transcode=true,original=true,quality=90/${fullscreenImage.name.split('.')[0]}.mp4"}
+                  type="video/mp4" />
+
+              </video>
+            }
           </div>
           <div className="absolute top-2 right-2 bg-black bg-opacity-50 p-2 rounded-full">
             {isZoomed ? (

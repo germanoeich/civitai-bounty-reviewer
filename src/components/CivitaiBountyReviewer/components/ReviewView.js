@@ -3,6 +3,7 @@ import BucketSelector from './BucketSelector';
 import FullscreenViewer from './FullscreenViewer';
 import ExtractorScript from '../../ExtractorScript';
 
+
 const ReviewView = ({
   fileUploaded,
   loading,
@@ -22,6 +23,7 @@ const ReviewView = ({
   resetReview,
   setConfigMode,
   handleSaveImage,
+  handleSaveAppState, // Add new function prop
 }) => {
   const [fullscreenImage, setFullscreenImage] = useState(null);
   const imageContainerRef = useRef(null);
@@ -48,7 +50,7 @@ const ReviewView = ({
         />
       )}
 
-      <div className="max-w-4xl mx-auto bg-white p-8 rounded-lg shadow-md">
+      <div className="max-w-4xl mx-auto bg-white dark:bg-gray-50 p-8 rounded-lg shadow-md">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4">
           <h1 className="text-2xl font-bold">Civitai Bounty Reviewer</h1>
 
@@ -77,6 +79,13 @@ const ReviewView = ({
               <div className="bg-green-100 text-green-800 px-3 py-1 rounded text-sm">
                 Bounty #{bountyId} • {allImages.length} images
               </div>
+              {/* Add Save button */}
+              <button
+                onClick={handleSaveAppState}
+                className="bg-blue-600 text-white px-2 py-1 rounded hover:bg-blue-700 text-sm"
+              >
+                Save Review
+              </button>
               <button
                 onClick={() => setConfigMode(true)}
                 className="bg-blue-600 text-white px-2 py-1 rounded hover:bg-blue-700 text-sm"
@@ -100,7 +109,7 @@ const ReviewView = ({
         </div>
 
         {!fileUploaded && !loading ? (
-          <div className="mt-8 bg-blue-50 p-6 rounded-lg border border-blue-200">
+          <div className="mt-8 bg-blue-50 dark:bg-gray-300 p-6 rounded-lg border border-blue-200">
             <h2 className="text-xl font-semibold mb-2">How to use this app:</h2>
             <ol className="list-decimal pl-5 space-y-2">
               <li>First, configure your sorting buckets by clicking on "Configure Buckets"</li>
@@ -167,7 +176,7 @@ const ReviewView = ({
               <div className="flex justify-between items-start">
                 <div>
                   <h2 className="text-xl font-semibold">
-                      Image #{currentImage.id}
+                    Image #{currentImage.id}
                     {' '}
                     <a href={`https://civitai.com/bounties/${bountyId}/entries/${currentImage.entryId}`} target="_blank" rel="noopener noreferrer" className="hover:underline">
                       (Entry #{currentImage.entryId})
@@ -185,8 +194,17 @@ const ReviewView = ({
                       }`}>
                       NSFW Level: {currentImage.nsfwLevel}
                     </span>
+                    <span className={`inline-block px-2 py-1 rounded text-xs font-semibold ${currentImage.type === 'video' ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'
+                      }`}>
+                      {currentImage.type}
+                    </span>
+                    {currentImage.metadata.audio && 
+                    <span className={`inline-block px-2 py-1 rounded text-xs font-semibold bg-red-100 text-red-800'`}>
+                      audio
+                    </span>
+}
                     <span className="inline-block px-2 py-1 rounded text-xs font-semibold bg-gray-100 text-gray-800">
-                      Dimensions: {currentImage.width}×{currentImage.height}
+                      {currentImage.width}×{currentImage.height}
                     </span>
                   </div>
                 </div>
@@ -204,29 +222,56 @@ const ReviewView = ({
             </div>
 
             {/* Fixed height container for the image */}
-            <div className="mb-4 flex justify-center items-center" style={{ minHeight: "400px" }}>
+            <div className="flex justify-center items-center" style={{ minHeight: "400px" }}>
               <div
                 ref={imageContainerRef}
                 className="w-full h-full flex items-center justify-center"
+                style={{minHeight: "660px"}}
                 onClick={() => setFullscreenImage(currentImage)}
               >
-                <img
-                  src={`https://image.civitai.com/xG1nkqKTMzGDvpLrqFT7WA/${currentImage.url}/width=800`}
-                  alt={`Image ${currentImage.id}`}
+                {currentImage.type === "video" &&
+                  <video
+                  autoPlay
+                  loop
+                  muted
+                  disablepictureinpicture
+                  preload="none"
+                  poster={`https://image.civitai.com/xG1nkqKTMzGDvpLrqFT7WA/${currentImage.url}/anim=false,transcode=true,original=true/${currentImage.url}.jpeg`}
+                  src={`https://image.civitai.com/xG1nkqKTMzGDvpLrqFT7WA/${currentImage.url}/transcode=true,original=true,quality=90/${currentImage.name.split('.')[0]}.webm`}
                   style={{
                     maxWidth: '100%',
-                    maxHeight: '600px',
+                    maxHeight: '660px',
                     width: 'auto',
                     height: 'auto',
                     objectFit: 'contain'
                   }}
+                  key={currentImage.url}
+                    >
+                    <source src={`https://image.civitai.com/xG1nkqKTMzGDvpLrqFT7WA/${currentImage.url}/transcode=true,original=true,quality=90/${currentImage.name.split('.')[0]}.webm`}
+                      type="video/webm" />
+                    <source src={`https://image.civitai.com/xG1nkqKTMzGDvpLrqFT7WA/${currentImage.url}/transcode=true,original=true,quality=90/${currentImage.name.split('.')[0]}.mp4`}
+                      type="video/mp4" />
+
+                  </video>
+                }
+                {currentImage.type === "image" && <img
+                  src={`https://image.civitai.com/xG1nkqKTMzGDvpLrqFT7WA/${currentImage.url}/width=450/${currentImage.name}`}
+                  alt={`Image ${currentImage.id}`}
+                  style={{
+                    maxWidth: '100%',
+                    maxHeight: '660px',
+                    width: 'auto',
+                    height: 'auto',
+                    objectFit: 'contain'
+                  }}
+                  key={currentImage.url}
                   className="rounded border cursor-pointer"
-                />
+                />}
               </div>
             </div>
 
             {/* Navigation buttons */}
-            <div className="mb-4 flex justify-between">
+            <div className="p-2 rounded bg-gray-50 dark:bg-gray-50 flex justify-between">
               <button
                 className="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700"
                 onClick={handlePrevious}
@@ -252,7 +297,7 @@ const ReviewView = ({
               </div>
 
               <button
-                className="bg-gray-400 text-white px-4 py-2 rounded hover:bg-gray-500"
+                className="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700"
                 onClick={handleSkip}
               >
                 Skip
@@ -260,7 +305,7 @@ const ReviewView = ({
             </div>
 
             {/* Bucket assignment buttons */}
-            <div className="sticky bottom-0 bg-white pt-4 pb-2 border-t">
+            <div className="sticky bottom-0 bg-white pt-2 pb-2 border-t">
               <div className="flex flex-wrap gap-2 justify-center">
                 {buckets.map((bucket) => {
                   const isCurrentlyAssigned = bucketAssignments[currentImage.id] === bucket.id;

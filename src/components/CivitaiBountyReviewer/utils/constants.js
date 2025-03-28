@@ -1,9 +1,10 @@
 export const defaultBuckets = [
-  { id: 'top10', name: 'Top 10', limit: 10, color: 'bg-purple-600' },
-  { id: 'top20', name: 'Top 20', limit: 20, color: 'bg-blue-600' },
-  { id: 'top50', name: 'Top 50', limit: 50, color: 'bg-green-600' },
-  { id: 'honorable', name: 'Honorable Mentions', limit: 100, color: 'bg-yellow-600' },
-  { id: 'rejected', name: 'Rejected', limit: null, color: 'bg-red-600' }
+  { id: 'top10', name: 'Top 10', limit: 10, color: 'bg-yellow-600' },
+  { id: 'top20', name: 'Top 20', limit: 20, color: 'bg-green-600' },
+  { id: 'top50', name: 'Top 50', limit: 50, color: 'bg-blue-600' },
+  { id: 'honorable', name: 'Honorable Mentions', limit: 100, color: 'bg-gray-600' },
+  { id: 'rejected', name: 'Rejected', limit: null, color: 'bg-red-600' },
+
 ];
 
 export const colorOptions = [

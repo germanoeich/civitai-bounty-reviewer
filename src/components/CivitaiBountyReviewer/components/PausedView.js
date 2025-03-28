@@ -4,7 +4,6 @@ import FullscreenViewer from './FullscreenViewer';
 import { ChevronLeftIcon, ChevronRightIcon } from 'lucide-react';
 
 const PausedView = ({
-  isComplete,
   isPaused,
   stats,
   buckets,
@@ -14,8 +13,8 @@ const PausedView = ({
   bountyId,
   getImagesInBucket,
   handleSaveBucketImages,
-  handleSaveRatingsJson,
   handleSaveAllImages,
+  handleSaveAppState, // Add new function prop
   resumeReview,
   finishReview,
   resetReview,
@@ -62,29 +61,23 @@ const PausedView = ({
       
       <div className="max-w-7xl mx-auto">
         <div className="bg-white p-8 rounded-lg shadow-md mb-6">
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
-            <div>
-              <h1 className="text-2xl font-bold mb-2">Review Status</h1>
-              <div className="text-gray-600">
-                {isComplete ? 'Review Complete' : 'Review Paused'}
-              </div>
-            </div>
-            
+          <h2 className='text-xl font-bold'>Actions</h2>
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center">
             <div className="flex flex-wrap gap-2">
-              {!isComplete && (
                 <button 
                   className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
                   onClick={resumeReview}
                 >
                   Resume Review
                 </button>
-              )}
+              {/* Add Save button */}
               <button 
                 className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-                onClick={handleSaveRatingsJson}
+                onClick={handleSaveAppState}
               >
-                Save Ratings
+                Save Review
               </button>
+              
               <button 
                 className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
                 onClick={handleSaveAllImages}
@@ -92,21 +85,20 @@ const PausedView = ({
                 Download All Images
               </button>
               <button 
-                className="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700"
-                onClick={resetReview}
-              >
-                Reset Review
-              </button>
-              <button 
                 className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
                 onClick={() => setConfigMode(true)}
               >
                 Configure Buckets
               </button>
+              <button 
+                className="bg-red-600 text-red px-4 py-2 rounded hover:bg-gray-700"
+                onClick={resetReview}
+              >
+                Reset
+              </button>
             </div>
           </div>
         </div>
-        
         {/* Display all buckets as sections rather than tabs */}
         <div>
           <h2 className="text-xl font-semibold mb-4">Images by Bucket</h2>
@@ -122,7 +114,7 @@ const PausedView = ({
                     <h3 className={`text-lg font-semibold ${bucket.color.replace('bg-', 'text-')}`}>
                       {bucket.name} ({imagesInBucket.length})
                       {bucket.limit && ` - Limit: ${bucket.limit}`}
-                      {imagesInBucket.length > bucket.limit && (
+                      {imagesInBucket.length > bucket.limit && bucket.limit > 0 && (
                         <span className="ml-2 text-yellow-600 text-sm bg-yellow-200 px-2 py-0.5 rounded">
                           Over limit
                         </span>

@@ -62,7 +62,7 @@ const BucketSelector = ({ imageId, currentBucketId, buckets, onBucketSelect, isB
           <div className="py-1 max-h-60 overflow-y-auto">
             {buckets.map(bucket => {
               const count = getBucketCount(bucket.id);
-              const isOver = count > bucket.limit;
+              const isOver = count > bucket.limit && bucket.limit > 0;
               
               return (
                 <div key={bucket.id}>
@@ -85,7 +85,7 @@ const BucketSelector = ({ imageId, currentBucketId, buckets, onBucketSelect, isB
                           Over limit
                         </span>
                       )}
-                      {count === bucket.limit && (
+                      {count === bucket.limit && bucket.limit > 0 && (
                         <span className="text-xs text-yellow-500 font-medium">
                           Full
                         </span>

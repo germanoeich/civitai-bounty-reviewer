@@ -43,7 +43,7 @@ const ConfigView = ({ buckets, setConfigMode, defaultBuckets, onAddBucket, onEdi
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 p-6">
+    <div className="min-h-screen bg-slate-100 dark:bg-red-100 p-6">
       <div className="max-w-4xl mx-auto bg-white p-8 rounded-lg shadow-md">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-bold">Bucket Configuration</h1>

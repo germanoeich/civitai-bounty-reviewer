@@ -113,7 +113,7 @@ extractBountyEntries().catch(error => {
 });
 
 // Example usage: extractBountyEntries()
-console.log("Civitai Bounty Data Extractor loaded. Call extractBountyEntries() to begin extraction.");`;
+console.log("<h1>Extraction started. Please remain in this tab until the extraction is complete.</h1>");`;
 
   const handleCopy = () => {
     navigator.clipboard.writeText(scriptContent);
@@ -135,6 +135,10 @@ console.log("Civitai Bounty Data Extractor loaded. Call extractBountyEntries() t
       <div className="text-sm mb-4">
         <p>Copy this script and run it in your browser console while on the Civitai bounty page.</p>
         <p>The extraction will start automatically when you paste the script.</p>
+      </div>
+      <div className="text-sm mb-4 text-red-500 font-bold">
+        
+        <p className='text-red-500'><span className="mr-2">🚨</span> Running scripts in your browser is dangerous. A malicious actor could quite literally take full control of your account and drain all your buzz if you paste code without verifying it first. I urge you to verify the code yourself, but since not everyone is a coder, I suggest you use an LLM like Claude or ChatGPT to verify the safety of this script.</p>
       </div>
       <pre className="bg-gray-800 text-gray-100 p-4 rounded-md overflow-auto text-xs h-64">
         {scriptContent}

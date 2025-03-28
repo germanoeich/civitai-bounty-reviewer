@@ -3,9 +3,14 @@ import { useBountyReviewer } from './hooks/useBountyReviewer';
 import ReviewView from './components/ReviewView';
 import ConfigView from './components/ConfigView';
 import PausedView from './components/PausedView';
+import AppStateLoadDialog from './components/AppStateLoadDialog';
 import { defaultBuckets } from './utils/constants';
 
 const CivitaiBountyReviewer = () => {
+  // State for the app state loading dialog
+  const [showLoadDialog, setShowLoadDialog] = useState(false);
+  const [pendingAppState, setPendingAppState] = useState(null);
+  
   const {
     entries,
     allImages,
@@ -14,7 +19,6 @@ const CivitaiBountyReviewer = () => {
     currentImageIndex,
     bucketAssignments,
     bucketPositions,
-    isComplete,
     bountyId,
     fileUploaded,
     jsonData,
@@ -24,7 +28,7 @@ const CivitaiBountyReviewer = () => {
     configMode,
     buckets,
     stats,
-    handleFileUpload,
+    handleFileUpload: originalHandleFileUpload,
     handleAssignToBucket,
     handleMoveToBucket,
     handleMoveImagePosition,
@@ -39,15 +43,60 @@ const CivitaiBountyReviewer = () => {
     getCurrentImage,
     getImagesInBucket,
     handleSaveImage,
-    handleSaveRatingsJson,
     handleSaveBucketImages,
+    handleSaveAllImages,
     handleAddBucket,
     handleEditBucket,
     handleRemoveBucket,
     handleResetBuckets,
-    handleSaveAllImages,
+    handleSaveAppState,
+    handleLoadAppState,
   } = useBountyReviewer();
 
+  // Wrap the file upload handler to check for app state files
+  const handleFileUpload = (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    
+    reader.onload = (e) => {
+      try {
+        const jsonData = JSON.parse(e.target.result);
+        
+        // Check if this is a saved app state
+        if (jsonData.version && jsonData.appName === 'Civitai Bounty Reviewer') {
+          // Show confirmation dialog before loading
+          setPendingAppState(jsonData);
+          setShowLoadDialog(true);
+        } else {
+          // Let the original handler process it
+          originalHandleFileUpload(event);
+        }
+      } catch (error) {
+        // If there's an error parsing, let the original handler handle it
+        originalHandleFileUpload(event);
+      }
+    };
+    
+    reader.readAsText(file);
+  };
+  
+  // Handlers for the app state loading dialog
+  const handleConfirmLoad = () => {
+    if (pendingAppState) {
+      handleLoadAppState(pendingAppState);
+      setPendingAppState(null);
+      setShowLoadDialog(false);
+    }
+  };
+  
+  const handleCancelLoad = () => {
+    setPendingAppState(null);
+    setShowLoadDialog(false);
+  };
+
+  // Error handling component
   if (error && allImages.length === 0) {
     return (
       <div className="min-h-screen bg-gray-100 p-6">
@@ -67,6 +116,7 @@ const CivitaiBountyReviewer = () => {
     );
   }
 
+  // Config mode view
   if (configMode) {
     return (
       <ConfigView
@@ -81,54 +131,76 @@ const CivitaiBountyReviewer = () => {
     );
   }
 
-  if (isPaused || isComplete) {
+  // Paused or complete review view
+  if (isPaused) {
     return (
-      <PausedView
-        isComplete={isComplete}
-        isPaused={isPaused}
-        stats={stats}
-        buckets={buckets}
-        allImages={allImages}
-        bucketAssignments={bucketAssignments}
-        bucketPositions={bucketPositions}
-        bountyId={bountyId}
-        getImagesInBucket={getImagesInBucket}
-        handleSaveBucketImages={handleSaveBucketImages}
-        handleSaveRatingsJson={handleSaveRatingsJson}
-        handleSaveAllImages={handleSaveAllImages}
-        resumeReview={resumeReview}
-        finishReview={finishReview}
-        resetReview={resetReview}
-        handleMoveToBucket={handleMoveToBucket}
-        handleMoveImagePosition={handleMoveImagePosition}
-        handleSaveImage={handleSaveImage}
-        setConfigMode={setConfigMode}
-      />
+      <>
+        {showLoadDialog && pendingAppState && (
+          <AppStateLoadDialog 
+            onClose={handleCancelLoad}
+            onConfirm={handleConfirmLoad}
+            stateInfo={pendingAppState}
+          />
+        )}
+        <PausedView
+          isPaused={isPaused}
+          stats={stats}
+          buckets={buckets}
+          allImages={allImages}
+          bucketAssignments={bucketAssignments}
+          bucketPositions={bucketPositions}
+          bountyId={bountyId}
+          getImagesInBucket={getImagesInBucket}
+          handleSaveBucketImages={handleSaveBucketImages}
+          handleSaveAllImages={handleSaveAllImages}
+          handleSaveAppState={handleSaveAppState}
+          resumeReview={resumeReview}
+          finishReview={finishReview}
+          resetReview={resetReview}
+          handleMoveToBucket={handleMoveToBucket}
+          handleMoveImagePosition={handleMoveImagePosition}
+          handleSaveImage={handleSaveImage}
+          setConfigMode={setConfigMode}
+        />
+      </>
     );
   }
 
+  console.log(getCurrentImage())
+
+  // Active review view
   return (
-    <ReviewView
-      fileUploaded={fileUploaded}
-      loading={loading}
-      allImages={allImages}
-      currentImageIndex={currentImageIndex}
-      currentImage={getCurrentImage()}
-      buckets={buckets}
-      stats={stats}
-      bucketAssignments={bucketAssignments}
-      bountyId={bountyId}
-      handleFileUpload={handleFileUpload}
-      handleAssignToBucket={handleAssignToBucket}
-      handlePrevious={handlePrevious}
-      handleSkip={handleSkip}
-      togglePause={togglePause}
-      finishReview={finishReview}
-      resetReview={resetReview}
-      setConfigMode={setConfigMode}
-      handleSaveImage={handleSaveImage}
-    />
+    <>
+      {showLoadDialog && pendingAppState && (
+        <AppStateLoadDialog 
+          onClose={handleCancelLoad}
+          onConfirm={handleConfirmLoad}
+          stateInfo={pendingAppState}
+        />
+      )}
+      <ReviewView
+        fileUploaded={fileUploaded}
+        loading={loading}
+        allImages={allImages}
+        currentImageIndex={currentImageIndex}
+        currentImage={getCurrentImage()}
+        buckets={buckets}
+        stats={stats}
+        bucketAssignments={bucketAssignments}
+        bountyId={bountyId}
+        handleFileUpload={handleFileUpload}
+        handleAssignToBucket={handleAssignToBucket}
+        handlePrevious={handlePrevious}
+        handleSkip={handleSkip}
+        togglePause={togglePause}
+        finishReview={finishReview}
+        resetReview={resetReview}
+        setConfigMode={setConfigMode}
+        handleSaveImage={handleSaveImage}
+        handleSaveAppState={handleSaveAppState}
+      />
+    </>
   );
 };
 
-export default CivitaiBountyReviewer; 
+export default CivitaiBountyReviewer;

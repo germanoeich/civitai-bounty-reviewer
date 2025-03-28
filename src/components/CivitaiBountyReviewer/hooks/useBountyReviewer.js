@@ -11,7 +11,6 @@ export const useBountyReviewer = () => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [bucketAssignments, setBucketAssignments] = useState({});
   const [bucketPositions, setBucketPositions] = useState({});
-  const [isComplete, setIsComplete] = useState(false);
   const [bountyId, setBountyId] = useState(null);
   const [fileUploaded, setFileUploaded] = useState(false);
   const [jsonData, setJsonData] = useState(null);
@@ -38,18 +37,15 @@ export const useBountyReviewer = () => {
       const images = [];
       entries.forEach(entry => {
         entry.images.forEach(image => {
-          console.log('Processing raw image:', image); // Debug log
           const processedImage = {
             ...image,
             entryId: entry.id,
             entryData: entry,
             url: image.url || image.entryData?.url || image.entryData?.images?.find(img => img.id === image.id)?.url // Try multiple possible URL locations
           };
-          console.log('Processed image:', processedImage); // Debug log
           images.push(processedImage);
         });
       });
-      console.log('All processed images:', images); // Debug log
       setAllImages(images);
     }
   }, [entries]);
@@ -60,7 +56,6 @@ export const useBountyReviewer = () => {
       setActiveBucketTab(buckets[0].id);
     }
   }, [buckets, activeBucketTab]);
-
   const handleFileUpload = (event) => {
     const file = event.target.files[0];
     if (!file) return;
@@ -73,18 +68,19 @@ export const useBountyReviewer = () => {
     reader.onload = (e) => {
       try {
         const jsonData = JSON.parse(e.target.result);
-        console.log('Raw JSON data loaded:', jsonData); // Debug log
         
+        // Check if this is a complete app state JSON (contains version field)
+        if (jsonData.version) {
+          // This is a saved app state
+          handleLoadAppState(jsonData);
+        }
         // Check if this is a standard bounty entries JSON
-        if (jsonData.entries && Array.isArray(jsonData.entries)) {
+        else if (jsonData.entries && Array.isArray(jsonData.entries)) {
           setBountyId(jsonData.bountyId || 'Unknown');
-          console.log('First entry structure:', jsonData.entries[0]); // Debug log
-          console.log('First entry images:', jsonData.entries[0].images); // Debug log
           setEntries(jsonData.entries);
           setJsonData(jsonData);
           setFileUploaded(true);
           setLoading(false);
-          console.log(`Loaded ${jsonData.entries.length} entries with multiple images from JSON file`);
         } 
         // Check if this is a ratings JSON from our app
         else if (jsonData.images && Array.isArray(jsonData.images)) {
@@ -114,9 +110,8 @@ export const useBountyReviewer = () => {
           setFileUploaded(true);
           setLoading(false);
           setIsLoadingRatings(false);
-          console.log(`Loaded ratings for ${jsonData.images.length} images from JSON file`);
         } else {
-          throw new Error('Invalid JSON format: Expected either "entries" or "images" array');
+          throw new Error('Invalid JSON format: Expected either "entries", "images" array, or a saved application state');
         }
       } catch (error) {
         console.error("Error parsing JSON file:", error);
@@ -134,12 +129,13 @@ export const useBountyReviewer = () => {
   };
 
   const resetReview = () => {
+    const goAhead = window.confirm("Are you sure? This will clear all the ratings you've made so far. Make sure you saved your review first.");
+    if(!goAhead) return;
     setEntries([]);
     setAllImages([]);
     setBucketAssignments({});
     setBucketPositions({});
     setCurrentImageIndex(0);
-    setIsComplete(false);
     setFileUploaded(false);
     setJsonData(null);
     setBountyId(null);
@@ -165,7 +161,7 @@ export const useBountyReviewer = () => {
     if (currentImageIndex < allImages.length - 1) {
       setCurrentImageIndex(prev => prev + 1);
     } else {
-      setIsComplete(true);
+      setIsPaused(true);
     }
   };
 
@@ -242,11 +238,10 @@ export const useBountyReviewer = () => {
   };
 
   const finishReview = () => {
-    setIsComplete(true);
+    setIsPaused(true);
   };
 
   const resumeReview = () => {
-    setIsComplete(false);
     setIsPaused(false);
   };
 
@@ -298,34 +293,6 @@ export const useBountyReviewer = () => {
     document.body.removeChild(link);
   };
 
-  const handleSaveRatingsJson = () => {
-    const ratedImages = allImages.filter(image => bucketAssignments[image.id] !== undefined);
-    
-    const outputData = {
-      bountyId: bountyId,
-      exportedAt: new Date().toISOString(),
-      buckets: buckets,
-      images: ratedImages.map(image => ({
-        imageId: image.id,
-        entryId: image.entryId,
-        url: image.url,
-        bucket: bucketAssignments[image.id],
-        position: bucketPositions[image.id] || 0
-      })),
-      entries: entries
-    };
-    
-    const dataStr = JSON.stringify(outputData, null, 2);
-    const dataUri = `data:application/json;charset=utf-8,${encodeURIComponent(dataStr)}`;
-    
-    const link = document.createElement('a');
-    link.href = dataUri;
-    link.download = `image_buckets_bounty_${bountyId}.json`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-
   const handleSaveBucketImages = async (bucketId) => {
     const bucketImages = getImagesInBucket(bucketId);
     const bucket = buckets.find(b => b.id === bucketId);
@@ -350,7 +317,6 @@ export const useBountyReviewer = () => {
             // Construct the full image URL with the Civitai CDN base URL
             const imageUrl = `https://image.civitai.com/xG1nkqKTMzGDvpLrqFT7WA/${image.url || image.entryData?.url}/width=1024`;
 
-            console.log('Downloading image:', imageUrl);
             // Fetch the image
             const response = await fetch(imageUrl);
             if (!response.ok) {
@@ -361,9 +327,8 @@ export const useBountyReviewer = () => {
             // Add the image to the ZIP file with position-based filename
             const position = image.position || 0;
             const ordinal = getOrdinal(position);
-            folder.file(`${ordinal}_image_${image.id}.jpg`, blob);
+            folder.file(`${ordinal}_${image.type}_${image.id}_${image.name}`, blob);
             downloadedCount++;
-            console.log(`Successfully downloaded image ${image.id}`);
           } catch (error) {
             console.error(`Failed to download image ${image.id}:`, error);
           }
@@ -371,7 +336,6 @@ export const useBountyReviewer = () => {
       }
 
       // Generate the ZIP file
-      console.log('Generating ZIP file...');
       const content = await zip.generateAsync({ type: 'blob' });
       
       // Create a download link for the ZIP file
@@ -399,10 +363,10 @@ export const useBountyReviewer = () => {
 
       // Get all images that have been assigned to buckets
       const allImagesWithBuckets = allImages
-        .filter(image => bucketAssignments[image.id]) // Only include images that have been assigned to buckets
+        // .filter(image => bucketAssignments[image.id]) // Only include images that have been assigned to buckets
         .map(image => ({
           ...image,
-          bucketId: bucketAssignments[image.id],
+          bucketId: bucketAssignments[image.id] || "unrated",
           position: bucketPositions[image.id] || 0
         }));
 
@@ -428,7 +392,6 @@ export const useBountyReviewer = () => {
             // Create bucket folder if it doesn't exist
             const bucketFolder = rootFolder.folder(bucketName);
 
-            console.log('Downloading image:', image);
             // Get the image URL
             const imageUrl = image.url;
 
@@ -437,7 +400,7 @@ export const useBountyReviewer = () => {
             }
 
             // Construct the full image URL with the Civitai CDN base URL
-            const fullImageUrl = `https://image.civitai.com/xG1nkqKTMzGDvpLrqFT7WA/${imageUrl}/width=1024`;
+            const fullImageUrl = `https://image.civitai.com/xG1nkqKTMzGDvpLrqFT7WA/${imageUrl}/original=true`;
 
             // Fetch the image
             const response = await fetch(fullImageUrl);
@@ -448,7 +411,7 @@ export const useBountyReviewer = () => {
 
             // Add the image to the ZIP file with position-based filename
             const ordinal = getOrdinal(image.position);
-            bucketFolder.file(`${ordinal}_image_${image.id}.jpg`, blob);
+            bucketFolder.file(`${ordinal}_${image.type}_${image.id}_${image.name}`, blob);
             downloadedCount++;
           } catch (error) {
             console.error(`Failed to download image ${image.id}:`, error);
@@ -524,6 +487,51 @@ export const useBountyReviewer = () => {
     return n + (s[(v - 20) % 10] || s[v] || s[0]);
   };
 
+  const handleSaveAppState = () => {
+    const outputData = {
+      version: '1.0',
+      bountyId: bountyId,
+      exportedAt: new Date().toISOString(),
+      buckets: buckets,
+      currentImageIndex: currentImageIndex,
+      isPaused: isPaused,
+      bucketAssignments: bucketAssignments,
+      bucketPositions: bucketPositions,
+      activeBucketTab: activeBucketTab,
+      stats: getStats(),
+      // Include entries data
+      entries: entries,
+      // Include all image data
+      allImages: allImages
+    };
+    
+    const dataStr = JSON.stringify(outputData, null, 2);
+    const dataUri = `data:application/json;charset=utf-8,${encodeURIComponent(dataStr)}`;
+    
+    const link = document.createElement('a');
+    link.href = dataUri;
+    link.download = `bounty_${bountyId}_state.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  // Add function to load a saved state
+  const handleLoadAppState = (savedState) => {
+    if (!savedState) return;
+    
+    setBountyId(savedState.bountyId || null);
+    setBuckets(savedState.buckets || defaultBuckets);
+    setCurrentImageIndex(savedState.currentImageIndex || 0);
+    setIsPaused(savedState.isPaused || false);
+    setBucketAssignments(savedState.bucketAssignments || {});
+    setBucketPositions(savedState.bucketPositions || {});
+    setActiveBucketTab(savedState.activeBucketTab || null);
+    setEntries(savedState.entries || []);
+    setAllImages(savedState.allImages || []);
+    setFileUploaded(true);
+  };
+
   return {
     entries,
     allImages,
@@ -532,7 +540,6 @@ export const useBountyReviewer = () => {
     currentImageIndex,
     bucketAssignments,
     bucketPositions,
-    isComplete,
     bountyId,
     fileUploaded,
     jsonData,
@@ -557,12 +564,13 @@ export const useBountyReviewer = () => {
     getCurrentImage,
     getImagesInBucket,
     handleSaveImage,
-    handleSaveRatingsJson,
     handleSaveBucketImages,
     handleSaveAllImages,
     handleAddBucket,
     handleEditBucket,
     handleRemoveBucket,
     handleResetBuckets,
+    handleSaveAppState,
+    handleLoadAppState,
   };
 }; 

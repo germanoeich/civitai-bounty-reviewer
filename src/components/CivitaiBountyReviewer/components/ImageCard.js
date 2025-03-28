@@ -2,13 +2,13 @@ import React, { useState } from 'react';
 import BucketSelector from './BucketSelector';
 import { ChevronLeftIcon, ChevronRightIcon } from 'lucide-react';
 
-const ImageCard = ({ 
-  image, 
-  showControls = true, 
-  buckets, 
-  bucketAssignments, 
-  onBucketSelect, 
-  onSaveImage, 
+const ImageCard = ({
+  image,
+  showControls = true,
+  buckets,
+  bucketAssignments,
+  onBucketSelect,
+  onSaveImage,
   onImageClick,
   onMoveLeft,
   onMoveRight,
@@ -17,20 +17,20 @@ const ImageCard = ({
   isLast,
   position,
   bountyId,
-  isBucketFull 
+  isBucketFull
 }) => {
   const [targetPosition, setTargetPosition] = useState('');
   const currentBucket = buckets.find(b => b.id === bucketAssignments[image.id]);
-  
+
   const handleImageClick = (e) => {
-    if (e.target.tagName === 'BUTTON' || 
-        e.target.closest('button') || 
-        e.target.closest('.bucket-selector') ||
-        e.target.tagName === 'INPUT' ||
-        e.target.tagName !== 'IMG') {
+    if (e.target.tagName === 'BUTTON' ||
+      e.target.closest('button') ||
+      e.target.closest('.bucket-selector') ||
+      e.target.tagName === 'INPUT' ||
+      e.target.tagName !== 'IMG') {
       return;
     }
-    
+
     onImageClick(image);
   };
 
@@ -42,16 +42,15 @@ const ImageCard = ({
       setTargetPosition('');
     }
   };
-  console.log(image)
   return (
-    <div 
-      key={image.id} 
-      className="border rounded p-2 flex flex-col h-full" 
+    <div
+      key={image.id}
+      className="border rounded p-2 flex flex-col h-full"
       onClick={handleImageClick}
     >
       <div className="flex justify-between items-start mb-1">
         <div className="flex gap-2">
-          <a 
+          <a
             href={`https://civitai.com/bounties/${bountyId}/entries/${image.entryId}`}
             target="_blank"
             rel="noopener noreferrer"
@@ -61,7 +60,7 @@ const ImageCard = ({
             Entry #{image.entryId}
           </a>
           <span className="text-xs text-gray-500">by</span>
-          <a 
+          <a
             href={`https://civitai.com/user/${image.entryData.user.username}`}
             target="_blank"
             rel="noopener noreferrer"
@@ -74,17 +73,35 @@ const ImageCard = ({
       </div>
       <div className="relative flex-grow min-h-[200px]">
         <div className="absolute inset-0 flex items-center justify-center bg-gray-50 rounded">
-          <img 
-            src={`https://image.civitai.com/xG1nkqKTMzGDvpLrqFT7WA/${image.url}/width=200`} 
+          {image.type === "video" &&
+            <video
+              playsinline
+              autoPlay
+              loop
+              controls
+              muted
+              disablepictureinpicture
+              preload="none"
+              className="max-w-full max-h-[200px] w-auto h-auto object-contain rounded cursor-pointer"
+              poster={`https://image.civitai.com/xG1nkqKTMzGDvpLrqFT7WA/${image.url}/anim=false,transcode=true,original=true/${image.url}.jpeg`}
+            >
+              <source src={`https://image.civitai.com/xG1nkqKTMzGDvpLrqFT7WA/${image.url}/transcode=true,original=true,quality=90/${image.name.split('.')[0]}.webm`}
+                type="video/webm" />
+              <source src={"https://image.civitai.com/xG1nkqKTMzGDvpLrqFT7WA/${image.url}/transcode=true,original=true,quality=90/${image.name.split('.')[0]}.mp4"}
+                type="video/mp4" />
+            </video>
+          }
+          {image.type === "image" && <img
+            src={`https://image.civitai.com/xG1nkqKTMzGDvpLrqFT7WA/${image.url}/width=200`}
             alt={`Image #${image.id}`}
-            className="max-w-full max-h-[200px] w-auto h-auto object-contain rounded cursor-pointer" 
-          />
+            className="max-w-full max-h-[200px] w-auto h-auto object-contain rounded cursor-pointer"
+          />}
         </div>
       </div>
       {showControls && (
         <div className="mt-2 flex flex-col gap-2">
           <div className="flex gap-2 items-center">
-            <BucketSelector 
+            <BucketSelector
               imageId={image.id}
               currentBucketId={bucketAssignments[image.id]}
               buckets={buckets}
