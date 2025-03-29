@@ -105,7 +105,7 @@ const ReviewView = ({
                 onClick={togglePause}
                 className="bg-yellow-600 text-white px-2 py-1 rounded hover:bg-yellow-700 text-sm"
               >
-                Pause
+                Pause review
               </button>
               <button
                 onClick={resetReview}
@@ -294,17 +294,10 @@ const ReviewView = ({
 
               <div className="flex gap-2">
                 <button
-                  className="bg-yellow-600 text-white px-4 py-2 rounded hover:bg-yellow-700"
-                  onClick={togglePause}
-                >
-                  Pause Review
-                </button>
-
-                <button
                   className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
                   onClick={finishReview}
                 >
-                  Finish
+                  Pause Review
                 </button>
               </div>
 
