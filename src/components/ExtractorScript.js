@@ -122,7 +122,7 @@ console.log("<h1>Extraction started. Please remain in this tab until the extract
   };
 
   return (
-    <div className="bg-white p-6 rounded-lg shadow-md">
+    <div className="bg-white dark:bg-darkElementBg p-6 rounded-lg shadow-md">
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-xl font-bold">Civitai Bounty Data Extractor Script</h2>
         <button 
