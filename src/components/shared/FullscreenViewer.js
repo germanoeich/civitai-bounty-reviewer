@@ -63,14 +63,25 @@ const FullscreenViewer = ({ image, src, alt, onClose, onDownload, fileName }) =>
     setRotation(0);
   };
 
-  const handleDownload = () => {
+  const handleDownload = async () => {
     // Handle both onDownload callback and direct download
     if (onDownload) {
       onDownload();
     } else if (imageUrl) {
-      // Use the file name if provided, otherwise extract from URL or use default
-      const downloadName = fileName || (image && image.name) || imageUrl.split('/').pop() || 'image.jpg';
-      saveAs(imageUrl, downloadName);
+      try {
+        // Use the already formatted imageUrl
+        const downloadName = fileName || (image && image.name) || imageUrl.split('/').pop() || 'image.jpg';
+        
+        // Fetch the image as a blob
+        const response = await fetch(imageUrl);
+        const blob = await response.blob();
+        
+        // Save the blob
+        saveAs(blob, downloadName);
+      } catch (error) {
+        console.error('Error downloading image:', error);
+        alert('Failed to download image. Please try again.');
+      }
     }
   };
 

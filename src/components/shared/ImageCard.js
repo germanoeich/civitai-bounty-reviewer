@@ -11,15 +11,19 @@ const ImageCard = ({ image, onSaveImage }) => {
 
   if (!image) return null;
 
-  const handleDownload = () => {
+  const handleDownload = async () => {
     if (image.url) {
       try {
         const filename = image.name || image.url.split('/').pop() || `image_${image.id}.jpg`;
-
+        // Format the URL properly for Civitai images
+        const formattedUrl = `https://image.civitai.com/xG1nkqKTMzGDvpLrqFT7WA/${image.url}/original=true`;
         if (typeof onSaveImage === 'function') {
-          onSaveImage(image.url, filename);
+          onSaveImage(formattedUrl, filename);
         } else {
-          saveAs(image.url, filename);
+          // Fetch the image as a blob
+          const response = await fetch(formattedUrl);
+          const blob = await response.blob();
+          saveAs(blob, filename);
         }
       } catch (error) {
         console.error('Error downloading image:', error);

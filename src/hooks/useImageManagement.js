@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import JSZip from 'jszip';
+import JSZip, { file } from 'jszip';
 
 export const useImageManagement = ({ buckets }) => {
   const [allImages, setAllImages] = useState([]);
@@ -223,15 +223,33 @@ export const useImageManagement = ({ buckets }) => {
   }, [currentImageIndex]);
 
   // Save image functionality
-  const handleSaveImage = useCallback((imageUrl, filename) => {
+  const handleSaveImage = useCallback(async (imageUrl, filename) => {
     if (!imageUrl) return;
     
-    const a = document.createElement('a');
-    a.href = imageUrl;
-    a.download = filename || 'image.jpg';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
+    try {
+      // If the URL is already a full Civitai URL, use it as is
+      const formattedUrl = imageUrl.startsWith('https://image.civitai.com/') 
+        ? imageUrl 
+        : `https://image.civitai.com/xG1nkqKTMzGDvpLrqFT7WA/${imageUrl}/original=true`;
+      
+      // Fetch the image as a blob
+      const response = await fetch(formattedUrl);
+      const blob = await response.blob();
+      
+      // Create a download link with the blob
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = filename || 'image.jpg';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      
+      // Clean up the URL object
+      URL.revokeObjectURL(a.href);
+    } catch (error) {
+      console.error('Error downloading image:', error);
+      alert('Failed to download image. Please try again.');
+    }
   }, []);
 
   // Save bucket images functionality
@@ -282,7 +300,12 @@ export const useImageManagement = ({ buckets }) => {
       // Add each image to the zip
       const fetchPromises = imagesInBucket.map(async (img, idx) => {
         try {
-          const response = await fetch(img.url);
+          // If the URL is already a full Civitai URL, use it as is
+          const formattedUrl = img.url.startsWith('https://image.civitai.com/')
+            ? img.url
+            : `https://image.civitai.com/xG1nkqKTMzGDvpLrqFT7WA/${img.url}/original=true`;
+            
+          const response = await fetch(formattedUrl);
           const blob = await response.blob();
           const fileName = getUniqueFileName(img, idx);
           zip.file(fileName, blob);
